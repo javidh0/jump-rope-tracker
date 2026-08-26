@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum SessionType {
+  STEADY_STATE
+  HIIT
+  SKILL_PRACTICE
+  CALIBRATION_TEST
+}
+
+enum SessionSource {
+  MANUAL
+  TIMER
+  WORKOUT_RUNNER
+}
+
+enum SkillTier {
+  SINGLES
+  DOUBLES
+  CROSSOVERS
+  TRIPLES
+  OTHER
+}
+
+enum CalibrationTestType {
+  MAX_SKIPS_30S
+  MAX_SKIPS_60S
+  TIME_FOR_500
+  MAX_DOUBLE_UNDERS_60S
+}
+
+enum GoalType {
+  FREQUENCY
+  STREAK
+  PROXY_TEST_TIME
+  SKILL_MILESTONE
+  UNBROKEN_STREAK
+}
+
+enum GoalStatus {
+  ACTIVE
+  ACHIEVED
+  ABANDONED
+}
+
+model Session {
+  id                    String    @id @default(cuid())
+  dateTime              DateTime  @default(now())
+  type                  SessionType
+  durationSec           Int
+  skipCount             Int?
+  skipCountEstimated     Boolean   @default(false)
+  misses                Int?
+  longestUnbrokenStreak Int?
+  skillAttempted        SkillTier?
+  rpe                   Int?
+  soreness              Int?
+  notes                 String?
+  source                SessionSource @default(MANUAL)
+
+  workoutId             String?
+  workout               Workout?  @relation(fields: [workoutId], references: [id])
+
+  calibrationTest       CalibrationTest?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Workout {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  isPreset    Boolean  @default(false)
+  workSec     Int
+  restSec     Int
+  rounds      Int
+  warmupSec   Int      @default(0)
+  cooldownSec Int      @default(0)
+  type        SessionType
+
+  sessions    Session[]
+
+  createdAt   DateTime @default(now())
+}
+
+model CalibrationTest {
+  id           String              @id @default(cuid())
+  sessionId    String              @unique
+  session      Session             @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  testType     CalibrationTestType
+  resultValue  Float
+  resultUnit   String
+
+  createdAt    DateTime            @default(now())
+}
+
+model Goal {
+  id           String     @id @default(cuid())
+  type         GoalType
+  targetValue  Float
+  targetUnit   String
+  targetDate   DateTime?
+  status       GoalStatus @default(ACTIVE)
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model SkillLadderEntry {
+  id              String   @id @default(cuid())
+  tier            SkillTier @unique
+  order           Int
+  unlockCriteria  String
+  achieved        Boolean  @default(false)
+  achievedAt      DateTime?
+}
+
+model UserSettings {
+  id                    String   @id @default(cuid())
+  weeklySessionTarget   Int      @default(3)
+  preferredUnits        String   @default("metric")
+  reminderEnabled       Boolean  @default(false)
+  reminderTime          String?
+  wearableConnected     Boolean  @default(false)
+
+  updatedAt             DateTime @updatedAt
+}
