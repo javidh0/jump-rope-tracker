@@ -120,6 +120,11 @@ export default function WorkoutRunner({ workout }: { workout: Workout }) {
     });
   }
 
+  function handleStop() {
+    setRunning(false);
+    setFinished(true);
+  }
+
   if (phases.length === 0) {
     return <p className="text-sm text-zinc-500">This workout has no phases configured.</p>;
   }
@@ -201,6 +206,12 @@ export default function WorkoutRunner({ workout }: { workout: Workout }) {
           className="rounded-full border border-zinc-300 px-8 py-3 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
         >
           Skip
+        </button>
+        <button
+          onClick={handleStop}
+          className="rounded-full border border-red-300 px-8 py-3 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
+        >
+          Stop
         </button>
       </div>
 
