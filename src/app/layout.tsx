@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import NavLinks from "@/components/NavLinks";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,17 +18,6 @@ export const metadata: Metadata = {
   description: "Track jump rope sessions, goals, and progress.",
 };
 
-const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/log", label: "Log Session" },
-  { href: "/timer", label: "Timer" },
-  { href: "/workouts", label: "Workouts" },
-  { href: "/sessions", label: "History" },
-  { href: "/progress", label: "Progress" },
-  { href: "/goals", label: "Goals" },
-  { href: "/settings", label: "Settings" },
-];
-
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -39,17 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <header className="border-b border-zinc-200 dark:border-zinc-800">
           <nav className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
             <span className="font-semibold tracking-tight">🪢 Jump Rope</span>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
+            <NavLinks />
           </nav>
         </header>
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
