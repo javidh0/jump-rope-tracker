@@ -1,5 +1,7 @@
 # Jump Rope Tracker
 
+[![Repo](https://img.shields.io/badge/GitHub-javidh0%2Fjump--rope--tracker-181717?logo=github)](https://github.com/javidh0/jump-rope-tracker)
+
 Track jump rope sessions, run structured interval workouts, log calibration
 tests, and set goals — all without needing a smartwatch or heart-rate
 monitor.
