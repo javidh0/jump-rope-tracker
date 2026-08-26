@@ -21,7 +21,16 @@ npm run db:seed       # seeds preset workouts + skill ladder
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+This runs on a **random free port**, not Next's default `3000` — this
+machine has another service (a Java/JDWP debugger) that also uses `3000`,
+so rather than pick a different fixed port that could someday collide with
+something else too, the dev/start scripts pass `-p 0`, which tells the OS
+to hand back whatever port is actually free. Check the terminal output for
+the URL, e.g.:
+
+```
+- Local:         http://localhost:54321
+```
 
 ### Useful scripts
 
