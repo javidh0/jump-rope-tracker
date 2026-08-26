@@ -106,6 +106,24 @@ const RemoteSensorPanel = forwardRef<RemoteSensorHandle, { running: boolean }>(
       );
     }
 
+    if (connected) {
+      return (
+        <div className="flex flex-col items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950">
+          <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+            iPhone connected · counting live
+          </span>
+          <span className="font-mono text-6xl tabular-nums text-zinc-900 dark:text-white">
+            {count}
+          </span>
+          <span className="text-xs text-zinc-500">jumps detected</span>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
         <div className="flex flex-col gap-1">
@@ -120,14 +138,7 @@ const RemoteSensorPanel = forwardRef<RemoteSensorHandle, { running: boolean }>(
           </span>
         </div>
 
-        <div className="flex items-center justify-between text-xs text-zinc-500">
-          <span>{connected ? "Connected" : "Waiting for phone…"}</span>
-          {connected && (
-            <span className="font-mono text-lg text-zinc-900 dark:text-white">
-              {count}
-            </span>
-          )}
-        </div>
+        <div className="text-xs text-zinc-500">Waiting for phone…</div>
       </div>
     );
   }

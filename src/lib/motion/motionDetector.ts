@@ -14,13 +14,20 @@ type DeviceMotionEventWithPermission = typeof DeviceMotionEvent & {
 
 export function isMotionDetectionSupported(): boolean {
   if (typeof window === "undefined") return false;
-  if (!window.isSecureContext) return false;
-  return "DeviceMotionEvent" in window;
+  // Secure context is a hard requirement (enforced by the browser itself).
+  // We deliberately do NOT also require `"DeviceMotionEvent" in window`
+  // here — on iOS Safari that check has been unreliable in practice (it
+  // can read as absent even when the API is genuinely usable, depending on
+  // OS version and settings), so treat "the browser lets us try" as
+  // sufficient and let requestMotionPermission()/actual usage surface a
+  // real error instead of pre-emptively hiding the whole flow.
+  return window.isSecureContext;
 }
 
 export function motionPermissionNeedsPrompt(): boolean {
   if (typeof window === "undefined") return false;
-  const Ctor = window.DeviceMotionEvent as DeviceMotionEventWithPermission | undefined;
+  const Ctor = (window as { DeviceMotionEvent?: DeviceMotionEventWithPermission })
+    .DeviceMotionEvent;
   return typeof Ctor?.requestPermission === "function";
 }
 
@@ -29,10 +36,13 @@ export function motionPermissionNeedsPrompt(): boolean {
  * iOS Safari requirement for motion sensor access.
  */
 export async function requestMotionPermission(): Promise<boolean> {
-  const Ctor = window.DeviceMotionEvent as DeviceMotionEventWithPermission | undefined;
+  const Ctor = (window as { DeviceMotionEvent?: DeviceMotionEventWithPermission })
+    .DeviceMotionEvent;
   if (typeof Ctor?.requestPermission !== "function") {
-    // Non-iOS browsers that support DeviceMotionEvent don't gate it behind
-    // an explicit permission prompt.
+    // Either DeviceMotionEvent isn't exposed at all (genuinely unsupported)
+    // or this browser doesn't gate it behind an explicit prompt (most
+    // non-iOS browsers). Either way there's nothing to request — treat as
+    // already-allowed and let actual event listening reveal the truth.
     return true;
   }
   try {
