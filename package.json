@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 0",
+    "dev:https": "next dev -p 0 --experimental-https --experimental-https-key certificates/localhost-key.pem --experimental-https-cert certificates/localhost.pem",
     "build": "prisma generate && next build",
     "start": "next start -p 0",
     "lint": "eslint",

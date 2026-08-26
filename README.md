@@ -43,6 +43,30 @@ the URL, e.g.:
 | `npm run db:seed` | Re-seed preset workouts + skill ladder |
 | `npm run db:studio` | Open Prisma Studio to browse the DB |
 
+## iPhone remote sensor (this branch)
+
+The Timer and Workout Runner can pair with an iPhone on the same LAN,
+which detects jumps via its motion sensor instead of relying on a laptop
+mic. This needs HTTPS — iOS Safari only grants motion-sensor permission
+on a secure connection — so a one-time local certificate is required:
+
+```bash
+npx next dev --experimental-https   # generates certificates/, needs your
+                                     # macOS password once to trust the CA
+```
+
+After that first run, use the regular HTTPS dev command going forward:
+
+```bash
+npm run dev:https
+```
+
+Then on the laptop, open the printed `https://<lan-ip>:<port>/timer` (or
+`/workouts/.../run`) URL, and on the iPhone visit the `/remote` URL shown
+on that screen. Regenerate `certificates/localhost.pem` (via `mkcert`,
+already downloaded to `~/Library/Caches/mkcert/`) if your LAN IP changes —
+the cert only covers the addresses it was issued for.
+
 ## Deploying
 
 The app runs on SQLite locally, which is simplest for a single-user app —
