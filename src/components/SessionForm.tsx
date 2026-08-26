@@ -42,7 +42,6 @@ export default function SessionForm({
   submitLabel,
   defaultDurationSec,
   defaultType,
-  defaultSkipCount,
   hiddenFields,
   lockDuration,
 }: {
@@ -52,7 +51,6 @@ export default function SessionForm({
   submitLabel: string;
   defaultDurationSec?: number;
   defaultType?: string;
-  defaultSkipCount?: number;
   hiddenFields?: Record<string, string>;
   lockDuration?: boolean;
 }) {
@@ -61,8 +59,6 @@ export default function SessionForm({
     effectiveDurationSec != null ? Math.floor(effectiveDurationSec / 60) : "";
   const durationSec =
     effectiveDurationSec != null ? effectiveDurationSec % 60 : "";
-
-  const effectiveSkipCount = session?.skipCount ?? defaultSkipCount;
 
   const [type, setType] = useState(
     session?.type ?? defaultType ?? "STEADY_STATE"
@@ -163,7 +159,7 @@ export default function SessionForm({
             type="number"
             name="skipCount"
             min={0}
-            defaultValue={effectiveSkipCount ?? ""}
+            defaultValue={session?.skipCount ?? ""}
             className="input"
           />
         </Field>
@@ -171,9 +167,7 @@ export default function SessionForm({
           <input
             type="checkbox"
             name="skipCountEstimated"
-            defaultChecked={
-              session?.skipCountEstimated ?? defaultSkipCount != null
-            }
+            defaultChecked={session?.skipCountEstimated}
           />
           Estimated
         </label>
