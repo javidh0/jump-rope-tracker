@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Workout } from "@prisma/client";
 import { createSession } from "@/lib/actions";
 import SessionForm from "@/components/SessionForm";
+import RemoteSensorPanel, {
+  type RemoteSensorHandle,
+} from "@/components/RemoteSensorPanel";
 
 type Phase = { label: string; sec: number; kind: "warmup" | "work" | "rest" | "cooldown" };
 
@@ -56,9 +59,20 @@ export default function WorkoutRunner({ workout }: { workout: Workout }) {
   const [running, setRunning] = useState(false);
   const [finished, setFinished] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
+  const [finalJumpCount, setFinalJumpCount] = useState<number | undefined>(
+    undefined
+  );
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const remotePanelRef = useRef<RemoteSensorHandle>(null);
 
   const currentPhase = phases[phaseIndex];
+
+  function captureJumpCount() {
+    if (remotePanelRef.current?.isArmed()) {
+      setFinalJumpCount(remotePanelRef.current.getCount());
+    }
+    remotePanelRef.current?.stopListening();
+  }
 
   useEffect(() => {
     if (!running || finished) return;
@@ -69,6 +83,7 @@ export default function WorkoutRunner({ workout }: { workout: Workout }) {
           if (nextIndex >= phases.length) {
             beep(880, 400);
             vibrate([200, 100, 200]);
+            captureJumpCount();
             setFinished(true);
             setRunning(false);
             return 0;
@@ -93,6 +108,7 @@ export default function WorkoutRunner({ workout }: { workout: Workout }) {
   }, [finished]);
 
   async function handleStart() {
+    const isFirstStart = elapsedSec === 0;
     setRunning(true);
     try {
       if ("wakeLock" in navigator) {
@@ -101,16 +117,19 @@ export default function WorkoutRunner({ workout }: { workout: Workout }) {
     } catch {
       // non-fatal
     }
+    await remotePanelRef.current?.startListening(isFirstStart);
   }
 
   function handlePause() {
     setRunning(false);
+    remotePanelRef.current?.stopListening();
   }
 
   function handleSkip() {
     setPhaseIndex((prev) => {
       const nextIndex = prev + 1;
       if (nextIndex >= phases.length) {
+        captureJumpCount();
         setFinished(true);
         setRunning(false);
         return prev;
@@ -122,6 +141,7 @@ export default function WorkoutRunner({ workout }: { workout: Workout }) {
 
   function handleStop() {
     setRunning(false);
+    captureJumpCount();
     setFinished(true);
   }
 
@@ -134,14 +154,17 @@ export default function WorkoutRunner({ workout }: { workout: Workout }) {
       <div className="flex flex-col gap-6">
         <h1 className="text-xl font-semibold">Workout complete 🎉</h1>
         <p className="text-sm text-zinc-500">
-          {workout.name} · {formatTime(elapsedSec)} total. Add the details below to
-          save it.
+          {workout.name} · {formatTime(elapsedSec)} total.{" "}
+          {finalJumpCount != null
+            ? `Remote sensor detected ${finalJumpCount} jumps — adjust below if needed.`
+            : "Add the details below to save it."}
         </p>
         <SessionForm
           action={createSession}
           submitLabel="Save session"
           defaultDurationSec={elapsedSec}
           defaultType={workout.type}
+          defaultSkipCount={finalJumpCount}
           hiddenFields={{ source: "WORKOUT_RUNNER", workoutId: workout.id }}
         />
       </div>
@@ -183,6 +206,10 @@ export default function WorkoutRunner({ workout }: { workout: Workout }) {
           className="h-full bg-zinc-900 transition-all dark:bg-white"
           style={{ width: `${Math.min(100, progress * 100)}%` }}
         />
+      </div>
+
+      <div className="w-full max-w-sm">
+        <RemoteSensorPanel ref={remotePanelRef} running={running} />
       </div>
 
       <div className="flex gap-3">

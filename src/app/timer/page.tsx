@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { createSession } from "@/lib/actions";
 import SessionForm from "@/components/SessionForm";
+import RemoteSensorPanel, {
+  type RemoteSensorHandle,
+} from "@/components/RemoteSensorPanel";
 
 function formatTime(totalSec: number) {
   const m = Math.floor(totalSec / 60);
@@ -14,9 +17,13 @@ export default function SkipTimerPage() {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [running, setRunning] = useState(false);
   const [stopped, setStopped] = useState(false);
+  const [finalJumpCount, setFinalJumpCount] = useState<number | undefined>(
+    undefined
+  );
   const startRef = useRef<number | null>(null);
   const baseRef = useRef(0);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const remotePanelRef = useRef<RemoteSensorHandle>(null);
 
   useEffect(() => {
     if (!running) return;
@@ -43,11 +50,13 @@ export default function SkipTimerPage() {
     wakeLockRef.current = null;
   }
 
-  function handleStart() {
+  async function handleStart() {
+    const isFirstStart = baseRef.current === 0 && elapsedMs === 0;
     startRef.current = Date.now();
     setRunning(true);
     setStopped(false);
     requestWakeLock();
+    await remotePanelRef.current?.startListening(isFirstStart);
   }
 
   function handlePause() {
@@ -57,6 +66,7 @@ export default function SkipTimerPage() {
     startRef.current = null;
     setRunning(false);
     releaseWakeLock();
+    remotePanelRef.current?.stopListening();
   }
 
   function handleStop() {
@@ -68,6 +78,11 @@ export default function SkipTimerPage() {
     setRunning(false);
     setStopped(true);
     releaseWakeLock();
+    const armed = remotePanelRef.current?.isArmed();
+    if (armed) {
+      setFinalJumpCount(remotePanelRef.current?.getCount());
+    }
+    remotePanelRef.current?.stopListening();
   }
 
   function handleReset() {
@@ -76,6 +91,8 @@ export default function SkipTimerPage() {
     setElapsedMs(0);
     setRunning(false);
     setStopped(false);
+    setFinalJumpCount(undefined);
+    remotePanelRef.current?.stopListening();
   }
 
   const elapsedSec = Math.round(elapsedMs / 1000);
@@ -85,14 +102,17 @@ export default function SkipTimerPage() {
       <div className="flex flex-col gap-6">
         <h1 className="text-xl font-semibold">Log this session?</h1>
         <p className="text-sm text-zinc-500">
-          Timer recorded {formatTime(elapsedSec)}. Fill in what you can — skip
-          count is estimated unless you tell us otherwise.
+          Timer recorded {formatTime(elapsedSec)}.{" "}
+          {finalJumpCount != null
+            ? `Remote sensor detected ${finalJumpCount} jumps — adjust below if needed.`
+            : "Fill in what you can — skip count is estimated unless you tell us otherwise."}
         </p>
         <SessionForm
           action={createSession}
           submitLabel="Save session"
           defaultDurationSec={elapsedSec}
           defaultType="STEADY_STATE"
+          defaultSkipCount={finalJumpCount}
           hiddenFields={{ source: "TIMER" }}
         />
         <button
@@ -113,6 +133,11 @@ export default function SkipTimerPage() {
       <div className="font-mono text-7xl tabular-nums">
         {formatTime(elapsedSec)}
       </div>
+
+      <div className="w-full max-w-sm">
+        <RemoteSensorPanel ref={remotePanelRef} running={running} />
+      </div>
+
       <div className="flex gap-3">
         {!running && elapsedMs === 0 && (
           <button
