@@ -36,6 +36,24 @@ async function relayFetch(code: string, method: string) {
   }
 }
 
+/**
+ * Best-effort — most browsers support Element.requestFullscreen(), but
+ * notably iPhone Safari (unlike iPad) never implemented it, so this is a
+ * silent no-op there. On iPhone, "Add to Home Screen" is the real way to
+ * get a chrome-free view (see the apple-mobile-web-app-capable meta tag
+ * in layout.tsx).
+ */
+async function requestFullscreenBestEffort() {
+  try {
+    const el = document.documentElement as HTMLElement & {
+      requestFullscreen?: () => Promise<void>;
+    };
+    await el.requestFullscreen?.();
+  } catch {
+    // unsupported or denied — non-fatal, page still works normally
+  }
+}
+
 export default function RemotePage() {
   const motion = useMotionCounter();
   const [step, setStep] = useState<Step>("code");
@@ -57,6 +75,11 @@ export default function RemotePage() {
   const [saved, setSaved] = useState(false);
 
   async function handleJoin() {
+    // Fire this first, still directly inside the tap handler — some
+    // browsers require fullscreen to be requested synchronously within a
+    // user gesture, before any await, or they silently ignore it.
+    requestFullscreenBestEffort();
+
     setJoinError(null);
     const trimmed = codeInput.trim();
     if (trimmed.length !== 4) {
@@ -124,15 +147,9 @@ export default function RemotePage() {
     setStep("calibrate");
   }
 
-  function handleAdjust(delta: number) {
-    if (!code) return;
-    motion.adjust(delta);
-    relayFetch(code, delta > 0 ? "POST" : "DELETE");
-  }
-
   if (!motion.supported) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-black p-6 text-center text-white">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 overflow-y-auto bg-black p-6 text-center text-white">
         <p className="font-semibold">Motion sensor not available</p>
         <p className="text-sm text-zinc-400">
           This needs a secure (https) connection and a browser that supports
@@ -145,7 +162,7 @@ export default function RemotePage() {
 
   if (step === "code") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-black p-6 text-white">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 overflow-y-auto bg-black p-6 text-white">
         <h1 className="text-lg font-semibold">Connect as remote sensor</h1>
         <p className="max-w-xs text-center text-sm text-zinc-400">
           Enter the code shown on your laptop&apos;s Timer or Workout screen.
@@ -172,7 +189,7 @@ export default function RemotePage() {
 
   if (step === "calibrate") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-black p-6 text-white">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 overflow-y-auto bg-black p-6 text-white">
         <h1 className="text-lg font-semibold">Calibrate</h1>
         <label className="flex w-full max-w-xs flex-col gap-1 text-sm">
           <span className="text-zinc-400">Calibration</span>
@@ -266,25 +283,15 @@ export default function RemotePage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-black p-6 text-white">
-      <span className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-        Detected jumps
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 overflow-y-auto bg-black p-6 text-white">
+      <span className="relative flex h-4 w-4">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+        <span className="relative inline-flex h-4 w-4 rounded-full bg-emerald-500" />
       </span>
-      <span className="font-mono text-8xl tabular-nums">{motion.count}</span>
-      <div className="flex gap-3">
-        <button
-          onClick={() => handleAdjust(-1)}
-          className="rounded-full border border-zinc-700 px-6 py-2 text-lg"
-        >
-          −1
-        </button>
-        <button
-          onClick={() => handleAdjust(1)}
-          className="rounded-full border border-zinc-700 px-6 py-2 text-lg"
-        >
-          +1
-        </button>
-      </div>
+      <p className="text-lg font-semibold">Connected</p>
+      <p className="max-w-xs text-center text-sm text-zinc-400">
+        Counting your jumps — check your laptop screen for the live count.
+      </p>
       <div className="w-full max-w-[200px]">
         <LevelMeter level={motion.level} />
       </div>
